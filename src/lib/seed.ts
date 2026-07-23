@@ -1,11 +1,13 @@
 import "dotenv/config"
 import { hash } from "bcryptjs"
 import { PrismaClient } from "../generated/prisma/client"
-import { PrismaLibSql } from "@prisma/adapter-libsql"
+import { PrismaPg } from "@prisma/adapter-pg"
 import { hospitals, surgeons, companies, surgeryTypes, notificationPhones } from "./data"
 
-const adapter = new PrismaLibSql({
-  url: process.env.DATABASE_URL || "file:./dev.db",
+const connectionString = process.env.DATABASE_URL || ""
+const adapter = new PrismaPg({
+  connectionString,
+  ssl: connectionString.includes("supabase") ? { rejectUnauthorized: false } : undefined,
 })
 const prisma = new PrismaClient({ adapter })
 
