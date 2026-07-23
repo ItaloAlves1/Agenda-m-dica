@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum SurgeryStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  phone     String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  surgeries         Surgery[]    @relation("UserSurgeries")
+  createdSurgeries  Surgery[]    @relation("CreatedSurgeries")
+
+  accounts  Account[]
+  sessions  Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Hospital {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  surgeries Surgery[]
+}
+
+model Surgeon {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  surgeries Surgery[]
+}
+
+model Company {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  surgeries Surgery[]
+}
+
+model SurgeryType {
+  id           Int       @id @default(autoincrement())
+  name         String    @unique
+  materialCost Float?
+  surgeries    Surgery[]
+}
+
+model Surgery {
+  id              String        @id @default(cuid())
+  date            DateTime
+  time            String
+  insurance       String
+  grossValue      Float?
+  materialCost    Float?
+  status          SurgeryStatus @default(SCHEDULED)
+  notifiedVesper  Boolean       @default(false)
+  notified2hBefore Boolean      @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  hospitalId   Int
+  hospital     Hospital @relation(fields: [hospitalId], references: [id])
+
+  surgeonId    Int
+  surgeon      Surgeon @relation(fields: [surgeonId], references: [id])
+
+  companyId    Int
+  company      Company @relation(fields: [companyId], references: [id])
+
+  surgeryTypeId Int
+  surgeryType  SurgeryType @relation(fields: [surgeryTypeId], references: [id])
+
+  userId       String
+  user         User    @relation("UserSurgeries", fields: [userId], references: [id])
+
+  createdById  String
+  createdBy    User    @relation("CreatedSurgeries", fields: [createdById], references: [id])
+
+  notifications NotificationLog[]
+}
+
+model NotificationLog {
+  id          String   @id @default(cuid())
+  surgeryId   String
+  phoneNumber String
+  type        String
+  sentAt      DateTime @default(now())
+
+  surgery Surgery @relation(fields: [surgeryId], references: [id])
+}
